@@ -11,6 +11,7 @@ public class Jogador {
 
     private int x, y;
     private int velocidade;
+    private int vida = 3; // Vida do personagem
 
     private BufferedImage[] spritesCima = new BufferedImage[6];
     private BufferedImage[] spritesBaixo = new BufferedImage[6];
@@ -30,7 +31,7 @@ public class Jogador {
     private boolean atacando = false;
     private int frameAtk = 0;
     private int timerAtk = 0;
-    private int velocidadeAtaque = 9; // Um controle independente para a espada!
+    private int velocidadeAtaque = 4; // Um controle independente para a espada!
 
     public Jogador(int xInicial, int yInicial) {
         this.x = xInicial;
@@ -165,7 +166,7 @@ public class Jogador {
                 timerAtk = 0;
                 frameAtk++;
 
-                if (frameAtk >= 2) {
+                if (frameAtk >= 6) {
                     atacando = false; // Isso destrava o boneco para andar novamente!
                     frameAtk = 0;
                 }
@@ -231,4 +232,23 @@ public class Jogador {
             }
         }
     }
+    public int getVida() {
+        return this.vida;
+    }
+
+    public void setVida(int vida) {
+        if (vida >= 0 && vida <= 3) {
+            this.vida = vida;
+        }
+    }
+    public boolean isAtacando() {
+        return this.atacando;
+    }
+
+    public int getDirecaoAtual() {
+        return this.direcaoAtual;
+    }
+
+    public int getX() { return x; }
+    public int getY() { return y; }
 }
