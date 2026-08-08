@@ -2,42 +2,47 @@ import javax.swing.JPanel;
 import javax.swing.Timer;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
-import java.io.IOException;
+import java.awt.Color;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
 public class TelaJogo extends JPanel implements KeyListener, ActionListener {
-    private Jogador cavaleiro;
-    private Inimigo slime; // O nosso primeiro inimigo instanciado!
-    private Timer gameLoop;
 
-    // Elementos do HUD de Vida do Jogador
-    private BufferedImage hudVida3;
-    private BufferedImage hudVida2;
-    private BufferedImage hudVida1;
+    // --- MÁQUINA DE ESTADOS DO JOGO ---
+    private static final int ESTADO_MENU = 0;
+    private static final int ESTADO_HISTORIA = 1; // NOVO ESTADO ADICIONADO!
+    private static final int ESTADO_JOGANDO = 2;
+    private int estadoAtual = ESTADO_MENU;
+
+    // --- VARIÁVEIS DA HISTÓRIA ---
+    private int paginaHistoria = 0; // Controla qual parte da história está aparecendo
+    // Matriz de textos (Array 2D) para separar as falas em páginas e linhas
+    private String[][] textoHistoria = {
+            { "Em um universo distante, existe a MathWorld,",
+                    "um reino onde a inteligência em exatas",
+                    "é algo obrigatório." },
+
+            { "Nesse mundo, onde cada passo é uma operação",
+                    "matemática e cada respiro é uma raiz quadrada,",
+                    "um jovem herói inicia sua jornada..." },
+
+            { "Ele parte em uma aventura inexplicável",
+                    "para salvar alguém muito importante para ele.",
+                    "Seria essa a sua amada?" }
+    };
+
+    private Jogador cavaleiro;
+    private Timer gameLoop;
 
     public TelaJogo() {
         cavaleiro = new Jogador(380, 280);
 
-        // Criamos o Slime em uma posição específica do mapa (Ex: X=200, Y=200)
-        slime = new Inimigo(200, 200);
-
         setFocusable(true);
         addKeyListener(this);
-
-        // Carrega as imagens do HUD
-        try {
-            hudVida3 = ImageIO.read(getClass().getResourceAsStream("HUD/vida_cheia.png"));
-            hudVida2 = ImageIO.read(getClass().getResourceAsStream("HUD/vida_media.png"));
-            hudVida1 = ImageIO.read(getClass().getResourceAsStream("HUD/vida_baixa.png"));
-        } catch (IOException e) {
-            System.out.println("Erro ao carregar as imagens do HUD: " + e.getMessage());
-        }
+        setBackground(new Color(20, 20, 30));
 
         gameLoop = new Timer(30, this);
         gameLoop.start();
@@ -48,97 +53,97 @@ public class TelaJogo extends JPanel implements KeyListener, ActionListener {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
 
-        // 1. Desenha o Slime se ele não estiver morto
-        //if (slime != null && !slime.isMorto()) {
-           // slime.desenhar(g2d);
-      // }
-
-        // 2. Desenha o Cavaleiro principal
-        if (cavaleiro != null) {
-            cavaleiro.desenhar(g);
+        // Controle de renderização baseado no estado
+        if (estadoAtual == ESTADO_MENU) {
+            desenharMenu(g2d);
+        } else if (estadoAtual == ESTADO_HISTORIA) {
+            desenharHistoria(g2d); // Chama o novo método de desenhar a história
+        } else if (estadoAtual == ESTADO_JOGANDO) {
+            cavaleiro.desenhar(g2d);
+            desenharHUD(g2d);
         }
 
-        // 3. Desenha a interface (HUD) fixa por cima de tudo
-        desenharHUD(g2d);
+        g2d.dispose();
+    }
+
+    private void desenharMenu(Graphics2D g2d) {
+        g2d.setColor(Color.YELLOW);
+        g2d.setFont(new Font("Monospaced", Font.BOLD, 38));
+        g2d.drawString("THE LAST VARIABLE", 200, 250);
+
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font("Monospaced", Font.PLAIN, 18));
+        g2d.drawString("Pressione [ ENTER ] para Iniciar", 225, 330);
+    }
+
+    // --- NOVO MÉTODO: DESENHAR HISTÓRIA ---
+    private void desenharHistoria(Graphics2D g2d) {
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font("Monospaced", Font.PLAIN, 22));
+
+        // Pega as linhas da página atual
+        String[] linhasDaPagina = textoHistoria[paginaHistoria];
+
+        // Loop 'for' para desenhar as linhas uma embaixo da outra
+        int yAtual = 200; // Posição vertical inicial do texto
+        for (String linha : linhasDaPagina) {
+            g2d.drawString(linha, 70, yAtual);
+            yAtual += 40; // Desce 40 pixels para escrever a próxima linha
+        }
+
+        // Dica piscante no rodapé para o jogador saber como avançar
+        g2d.setColor(Color.YELLOW);
+        g2d.setFont(new Font("Monospaced", Font.BOLD, 18));
+        g2d.drawString("Pressione [ ENTER ] para avançar >>", 200, 480);
     }
 
     private void desenharHUD(Graphics2D g2d) {
-        if (cavaleiro == null) return;
-        BufferedImage hudAtual = null;
-
-        if (cavaleiro.getVida() == 3) hudAtual = hudVida3;
-        else if (cavaleiro.getVida() == 2) hudAtual = hudVida2;
-        else if (cavaleiro.getVida() == 1) hudAtual = hudVida1;
-
-        if (hudAtual != null) {
-            g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
-                    java.awt.RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-
-            // Desenha o HUD no tamanho original no canto (X:20, Y:20)
-            g2d.drawImage(hudAtual, 20, 20, hudAtual.getWidth(), hudAtual.getHeight(), null);
-        }
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font("Monospaced", Font.BOLD, 18));
+        g2d.drawString("Vida: " + cavaleiro.getVida(), 20, 35);
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        // Atualiza a lógica do jogador
-        cavaleiro.atualizar();
-
-        // Se o slime estiver vivo, atualiza a IA dele passando a posição do jogador
-        if (slime != null && !slime.isMorto()) {
-            slime.atualizar(cavaleiro.getX(), cavaleiro.getY());
-
-            // Executa o teste de colisão do ataque do jogador
-            verificarAtaqueJogador();
+        if (estadoAtual == ESTADO_JOGANDO) {
+            cavaleiro.atualizar();
         }
-
         repaint();
-    }
-
-    // Lógica Matemática de Colisão do Combate
-    private void verificarAtaqueJogador() {
-        // Só verificamos colisão se o jogador estiver de fato executando a animação de ataque
-        if (cavaleiro.isAtacando()) {
-
-            // Criamos uma caixa para representar o alcance da espada (64x64 pixels)
-            int alcanceEspada = 64;
-            Rectangle areaCorte = null;
-
-            // Dependendo da direção que o cavaleiro olha, a espada bate em um lugar diferente
-            if (cavaleiro.getDirecaoAtual() == 0) { // Cima
-                areaCorte = new Rectangle(cavaleiro.getX(), cavaleiro.getY() - alcanceEspada, 64, alcanceEspada);
-            } else if (cavaleiro.getDirecaoAtual() == 1) { // Baixo
-                areaCorte = new Rectangle(cavaleiro.getX(), cavaleiro.getY() + 64, 64, alcanceEspada);
-            } else if (cavaleiro.getDirecaoAtual() == 2) { // Esquerda
-                areaCorte = new Rectangle(cavaleiro.getX() - alcanceEspada, cavaleiro.getY(), alcanceEspada, 64);
-            } else if (cavaleiro.getDirecaoAtual() == 3) { // Direita
-                areaCorte = new Rectangle(cavaleiro.getX() + 64, cavaleiro.getY(), alcanceEspada, 64);
-            }
-
-            // Se a área do corte da espada encostar na Hitbox (getBounds) do Slime...
-            if (areaCorte != null && areaCorte.intersects(slime.getBounds())) {
-                slime.receberDano(15); // Slime perde 15 de vida por frame/golpe válido!
-            }
-        }
     }
 
     @Override
     public void keyPressed(KeyEvent e) {
         int tecla = e.getKeyCode();
 
-        if (tecla == KeyEvent.VK_UP) cavaleiro.moverCima();
-        if (tecla == KeyEvent.VK_DOWN) cavaleiro.moverBaixo();
-        if (tecla == KeyEvent.VK_LEFT) cavaleiro.moverEsquerda();
-        if (tecla == KeyEvent.VK_RIGHT) cavaleiro.moverDireita();
-        if (tecla == KeyEvent.VK_Z)  cavaleiro.atacar();
+        // Lógica de transição de telas
+        if (estadoAtual == ESTADO_MENU) {
+            if (tecla == KeyEvent.VK_ENTER) {
+                // Sai do menu e vai para a página 0 da história
+                estadoAtual = ESTADO_HISTORIA;
+                paginaHistoria = 0;
+            }
+        }
+        else if (estadoAtual == ESTADO_HISTORIA) {
+            if (tecla == KeyEvent.VK_ENTER) {
+                paginaHistoria++; // Avança a página
 
-        if (tecla == KeyEvent.VK_MINUS) {
-            cavaleiro.setVida(cavaleiro.getVida() - 1);
+                // Se acabaram as páginas, começa o jogo pra valer!
+                if (paginaHistoria >= textoHistoria.length) {
+                    estadoAtual = ESTADO_JOGANDO;
+                }
+            }
+        }
+        else if (estadoAtual == ESTADO_JOGANDO) {
+            // Controles do jogador
+            if (tecla == KeyEvent.VK_UP || tecla == KeyEvent.VK_W) cavaleiro.mover(0, -1);
+            if (tecla == KeyEvent.VK_DOWN || tecla == KeyEvent.VK_S) cavaleiro.mover(0, 1);
+            if (tecla == KeyEvent.VK_LEFT || tecla == KeyEvent.VK_A) cavaleiro.mover(-1, 0);
+            if (tecla == KeyEvent.VK_RIGHT || tecla == KeyEvent.VK_D) cavaleiro.mover(1, 0);
+
+            if (tecla == KeyEvent.VK_Z) cavaleiro.atacar();
         }
     }
 
-    @Override
-    public void keyTyped(KeyEvent e) {}
-    @Override
-    public void keyReleased(KeyEvent e) {}
+    @Override public void keyTyped(KeyEvent e) {}
+    @Override public void keyReleased(KeyEvent e) {}
 }
